@@ -16,7 +16,7 @@ This is a free to use tool to assist with understanding the JSON outputs from th
 3. Use the Classification and Masking tabs to explore and filter your data.
 
 
-> **Note:** The JSON files provided in this repository are dummy test files for illustration purposes only. Please use your own files for real data and analysis.
+> **Note:** The JSON files provided in this repository are dummy test files for illustration purposes only. Please use your own files for real analysis.
 
 ## Disclaimer
 This tool is experimental and provided "as is". There is no guarantee of correctness, support, or future updates.
