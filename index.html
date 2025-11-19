@@ -212,19 +212,21 @@
       <div id="maskingMapContent"></div>
     </div>
     <div id="tabContentSettings" style="display:none;">
-        <div id="howToUseModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:2000;align-items:center;justify-content:center;">
-          <div style="background:#fff;border-radius:12px;max-width:520px;padding:36px 32px;box-shadow:0 2px 18px rgba(200,0,0,0.18);margin:auto;position:relative;">
-            <button id="closeHowToUse" style="position:absolute;top:12px;right:18px;font-size:1.5em;background:none;border:none;color:#c00;cursor:pointer;font-weight:700;">&times;</button>
-            <h2 style="color:#c00;margin-top:0;margin-bottom:18px;font-size:1.35em;">How to Use This Viewer</h2>
-            <ul style="color:#333;font-size:1.12em;line-height:1.8;margin-bottom:0;padding-left:22px;">
-              <li><b>Upload Files:</b> Use the <b>JSON Upload</b> tab to upload your <code>classification.json</code> and <code>masking.json</code> files.</li>
-              <li><b>Explore Tabs:</b> Switch between <b>Classification</b> and <b>Masking Map</b> tabs to view and filter your data.</li>
-              <li><b>Filter & Search:</b> Use the filtering options and search boxes to narrow down tables and columns. The <b>Show</b> switch lets you quickly view all tables, only those with classification/masking, or only those without.</li>
-              <li><b>Session Persistence:</b> Uploaded files are remembered until you close the browser.</li>
-              <li><b>Need Help?</b> Contact Solution Engineering or refer to the README for more details.</li>
-            </ul>
-          </div>
-        </div>
+        <!-- ...existing code for tabContentSettings... -->
+    </div>
+    <div id="howToUseModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:2000;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:12px;max-width:520px;padding:36px 32px;box-shadow:0 2px 18px rgba(200,0,0,0.18);margin:auto;position:relative;">
+        <button id="closeHowToUse" style="position:absolute;top:12px;right:18px;font-size:1.5em;background:none;border:none;color:#c00;cursor:pointer;font-weight:700;">&times;</button>
+        <h2 style="color:#c00;margin-top:0;margin-bottom:18px;font-size:1.35em;">How to Use This Viewer</h2>
+        <ul style="color:#333;font-size:1.12em;line-height:1.8;margin-bottom:0;padding-left:22px;">
+          <li><b>Upload Files:</b> Use the <b>JSON Upload</b> tab to upload your <code>classification.json</code> and <code>masking.json</code> files.</li>
+          <li><b>Explore Tabs:</b> Switch between <b>Classification</b> and <b>Masking Map</b> tabs to view and filter your data.</li>
+          <li><b>Filter & Search:</b> Use the filtering options and search boxes to narrow down tables and columns. The <b>Show</b> switch lets you quickly view all tables, only those with classification/masking, or only those without.</li>
+          <li><b>Session Persistence:</b> Uploaded files are remembered until you close the browser.</li>
+          <li><b>Need Help?</b> Contact Solution Engineering or refer to the README for more details.</li>
+        </ul>
+      </div>
+    </div>
       <div style="text-align:center; margin-top:40px;">
         <div style="margin-bottom:24px;">
           <label for="jsonFile" style="font-weight:600;color:#c00;">Select classification.json: </label>
