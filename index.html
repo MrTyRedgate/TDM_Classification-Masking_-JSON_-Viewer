@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TDM Classification and Masking JSON Viewer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #c00;
+  color: #fff;
+  padding: 28px 32px 22px 32px;
+  border-bottom: 4px solid #a00;
+  position: relative;
+    }
+    .header-logo {
+  height: 60px;
+  margin-right: 18px;
+    }
+    .header-title {
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: 1px;
+  flex: 0 1 auto;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(200,0,0,0.10);
+      padding: 32px;
+    }
+    .filters {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      justify-content: center;
+    }
+    .filters select, .filters input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #c00;
+      min-width: 160px;
+      background: #fff5f5;
+      color: #900;
+    }
+    .filters select:focus, .filters input:focus {
+      outline: 2px solid #c00;
+    }
+    .table-list {
+      margin-bottom: 24px;
+    }
+    .table-card {
+      background: #fff5f5;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      padding: 18px 24px;
+      box-shadow: 0 1px 4px rgba(200,0,0,0.08);
+      border-left: 6px solid #c00;
+    }
+    .table-title {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #c00;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background: #ffe5e5;
+      font-weight: 500;
+      color: #900;
+      border-bottom: 2px solid #c00;
+    }
+    tr:nth-child(even) {
+      background: #fff0f0;
+    }
+    .classification {
+      font-weight: 600;
+      color: #c00;
+    }
+    .pagination {
+      text-align: center;
+      margin-top: 16px;
+    }
+    .pagination button {
+      padding: 8px 16px;
+      margin: 0 4px;
+      border: none;
+      border-radius: 4px;
+      background: #c00;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .pagination button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .pagination button:not(:disabled):hover {
+      background: #a00;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 12px; }
+      .table-card { padding: 10px; }
+      .header { flex-direction: column; align-items: flex-start; padding: 12px; }
+      .header-title { font-size: 1.3em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="logo.jpg" alt="Redgate Logo" class="header-logo" style="position:absolute;left:32px;top:12px;height:80px;">
+  <span class="header-title" style="margin:0 auto;">TDM Classification and Masking JSON Viewer</span>
+    <span style="position:absolute;right:32px;top:18px;font-size:1.4em;color:#fff;opacity:0.5;font-weight:700;letter-spacing:1px;pointer-events:none;">Beta Dev Usage</span>
+  </div>
+  <div class="container">
+    <div class="tab-bar" style="display:flex; gap:2px; margin-bottom:24px; border-bottom:2px solid #c00;">
+      <button id="tabClassification" class="tab-btn active" style="flex:1; padding:12px; background:#c00; color:#fff; border:none; font-weight:600; cursor:pointer;">Classification</button>
+      <button id="tabMasking" class="tab-btn" style="flex:1; padding:12px; background:#fff; color:#c00; border:none; font-weight:600; cursor:pointer;">Masking Map</button>
+      <button id="tabSettings" class="tab-btn" style="flex:1; padding:12px; background:#fff; color:#c00; border:none; font-weight:600; cursor:pointer;">JSON Upload</button>
+    </div>
+    <div id="tabContentClassification">
+      <div style="display:flex;justify-content:center;align-items:center;gap:18px;margin-bottom:12px;">
+        <label for="classificationSwitch" style="font-weight:600;color:#c00;">Show:</label>
+        <select id="classificationSwitch" style="padding:8px;border-radius:4px;border:1px solid #c00;background:#fff5f5;color:#900;min-width:220px;">
+          <option value="all">All Tables</option>
+          <option value="with">Tables With Classification</option>
+          <option value="without">Tables Without Classification</option>
+        </select>
+      </div>
+      <div class="filters" style="display:none;" id="filters">
+        <select id="tableFilter">
+          <option value="">All Tables</option>
+        </select>
+        <input type="text" id="columnFilter" placeholder="Filter by Column Name">
+        <select id="typeFilter">
+          <option value="">All Classification Types</option>
+        </select>
+      </div>
+      <div id="classificationNote" style="text-align:center; color:#c00; font-size:0.95em; margin-bottom:12px; margin-top:2px;">Filters from the Table Perspective</div>
+      <div id="tableList" class="table-list"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+    <div id="tabContentMasking" style="display:none;">
+      <div style="display:flex;justify-content:center;align-items:center;gap:18px;margin-bottom:12px;">
+        <label for="maskingSwitch" style="font-weight:600;color:#c00;">Show:</label>
+        <select id="maskingSwitch" style="padding:8px;border-radius:4px;border:1px solid #c00;background:#fff5f5;color:#900;min-width:220px;">
+          <option value="all">All Tables</option>
+          <option value="with">Tables With Masking Dataset</option>
+          <option value="without">Tables Without Masking Dataset</option>
+        </select>
+      </div>
+      <div class="filters" id="maskingFilters" style="display:none; margin-bottom:24px;">
+        <select id="maskingTableFilter">
+          <option value="">All Tables</option>
+        </select>
+        <select id="maskingDatasetFilter">
+          <option value="">All Masking Datasets</option>
+        </select>
+        <select id="maskingDeterministicFilter">
+          <option value="">Deterministic?</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+      <div id="maskingNote" style="text-align:center; color:#c00; font-size:0.95em; margin-bottom:12px; margin-top:2px;">Filters from the Table Perspective</div>
+      <div id="maskingMapContent"></div>
+    </div>
+    <div id="tabContentSettings" style="display:none;">
+      <div style="text-align:center; margin-top:40px;">
+        <div style="margin-bottom:24px;">
+          <label for="jsonFile" style="font-weight:600;color:#c00;">Select classification.json: </label>
+          <input type="file" id="jsonFile" accept="application/json">
+        </div>
+        <div>
+          <label for="maskingFile" style="font-weight:600;color:#c00;">Select masking.json: </label>
+          <input type="file" id="maskingFile" accept="application/json">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="version-watermark" style="position:fixed;right:16px;bottom:8px;font-size:1.25em;color:#c00;opacity:0.5;font-weight:600;pointer-events:none;z-index:999;">version 1.1</div>
+  <script>
+    let data = null;
+    let tables = [];
+    let tableNames = [];
+    let typeList = [];
+    const tablesPerPage = 5;
+    let currentPage = 1;
+    let maskingData = null;
+    let maskingTables = [];
+
+    // Load from sessionStorage if available
+    window.addEventListener('DOMContentLoaded', function() {
+      const savedClassification = sessionStorage.getItem('classificationJson');
+      if (savedClassification) {
+        try {
+          data = JSON.parse(savedClassification);
+          tables = data.tables || [];
+          extractFilters();
+          populateFilters();
+          showFilters();
+          setupFilterEvents();
+          currentPage = 1;
+          renderTables();
+        } catch (err) {
+          sessionStorage.removeItem('classificationJson');
+        }
+      }
+      const savedMasking = sessionStorage.getItem('maskingJson');
+      if (savedMasking) {
+        try {
+          maskingData = JSON.parse(savedMasking);
+          maskingTables = maskingData.tables || [];
+          renderMaskingMap();
+        } catch (err) {
+          sessionStorage.removeItem('maskingJson');
+        }
+      }
+    });
+
+    // Tab logic
+    const tabClassification = document.getElementById('tabClassification');
+    const tabMasking = document.getElementById('tabMasking');
+    const tabSettings = document.getElementById('tabSettings');
+    const tabContentClassification = document.getElementById('tabContentClassification');
+    const tabContentMasking = document.getElementById('tabContentMasking');
+    const tabContentSettings = document.getElementById('tabContentSettings');
+
+    function setActiveTab(tab) {
+      tabClassification.classList.remove('active');
+      tabMasking.classList.remove('active');
+      tabSettings.classList.remove('active');
+      tabClassification.style.background = '#fff';
+      tabClassification.style.color = '#c00';
+      tabMasking.style.background = '#fff';
+      tabMasking.style.color = '#c00';
+      tabSettings.style.background = '#fff';
+      tabSettings.style.color = '#c00';
+      tabContentClassification.style.display = 'none';
+      tabContentMasking.style.display = 'none';
+      tabContentSettings.style.display = 'none';
+      if (tab === 'classification') {
+        tabClassification.classList.add('active');
+        tabClassification.style.background = '#c00';
+        tabClassification.style.color = '#fff';
+        tabContentClassification.style.display = '';
+      } else if (tab === 'masking') {
+        tabMasking.classList.add('active');
+        tabMasking.style.background = '#c00';
+        tabMasking.style.color = '#fff';
+        tabContentMasking.style.display = '';
+      } else if (tab === 'settings') {
+        tabSettings.classList.add('active');
+        tabSettings.style.background = '#c00';
+        tabSettings.style.color = '#fff';
+        tabContentSettings.style.display = '';
+      }
+    }
+
+    tabClassification.onclick = function() { setActiveTab('classification'); };
+    tabMasking.onclick = function() { setActiveTab('masking'); };
+    tabSettings.onclick = function() { setActiveTab('settings'); };
+
+    // Set default tab
+    setActiveTab('classification');
+
+    function extractFilters() {
+      tableNames = tables.map(t => t.name);
+      const typeSet = new Set();
+      tables.forEach(t => t.columns.forEach(c => { if (c.type) typeSet.add(c.type); }));
+      typeList = Array.from(typeSet).sort();
+    }
+
+    function populateFilters() {
+      const tableFilter = document.getElementById('tableFilter');
+      tableFilter.innerHTML = '<option value="">All Tables</option>';
+      tableNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        tableFilter.appendChild(opt);
+      });
+      const typeFilter = document.getElementById('typeFilter');
+      typeFilter.innerHTML = '<option value="">All Classification Types</option>';
+      typeList.forEach(type => {
+        const opt = document.createElement('option');
+        opt.value = type;
+        opt.textContent = type;
+        typeFilter.appendChild(opt);
+      });
+    }
+
+    function getFilteredTables() {
+      const tableVal = document.getElementById('tableFilter').value.trim();
+      const columnVal = document.getElementById('columnFilter').value.trim().toLowerCase();
+      const typeVal = document.getElementById('typeFilter').value.trim();
+      const switchVal = document.getElementById('classificationSwitch')?.value || 'all';
+      return tables.filter(table => {
+        // Switch logic
+        const hasClassification = table.columns.some(col => col.type && col.type.trim() !== '');
+        if (switchVal === 'with' && !hasClassification) return false;
+        if (switchVal === 'without' && hasClassification) return false;
+        if (tableVal && table.name !== tableVal) return false;
+        // If column or type filter, check if any column matches
+        if (columnVal || typeVal) {
+          return table.columns.some(col => {
+            const colNameMatch = !columnVal || col.name.toLowerCase().includes(columnVal);
+            // Fix: type filter should match only if col.type exists
+            const typeMatch = !typeVal || (col.type && col.type === typeVal);
+            return colNameMatch && typeMatch;
+          });
+        }
+        return true;
+      });
+    }
+
+    function renderTables() {
+      const filteredTables = getFilteredTables();
+      const totalPages = Math.ceil(filteredTables.length / tablesPerPage);
+      if (currentPage > totalPages) currentPage = totalPages || 1;
+      const startIdx = (currentPage - 1) * tablesPerPage;
+      const endIdx = startIdx + tablesPerPage;
+      const tablesToShow = filteredTables.slice(startIdx, endIdx);
+      const tableList = document.getElementById('tableList');
+      tableList.innerHTML = '';
+      if (tablesToShow.length === 0) {
+        tableList.innerHTML = '<p style="text-align:center;color:#888;">No tables match the filter criteria.</p>';
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+      tablesToShow.forEach(table => {
+        const card = document.createElement('div');
+        card.className = 'table-card';
+        card.innerHTML = `<div class="table-title">${table.name} <span style="color:#888;font-size:0.9em;">(${table.schema})</span></div>`;
+        const tbl = document.createElement('table');
+        tbl.innerHTML = `<tr><th>Column</th><th>Classification Type</th><th>Max Length</th></tr>`;
+        table.columns.forEach(col => {
+          tbl.innerHTML += `<tr>
+            <td>${col.name}</td>
+            <td class="classification">${col.type ? col.type : '<span style="color:#bbb;">-</span>'}</td>
+            <td>${col.maxLength !== undefined ? col.maxLength : ''}</td>
+          </tr>`;
+        });
+        card.appendChild(tbl);
+        tableList.appendChild(card);
+      });
+      // Pagination controls
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      if (totalPages > 1) {
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement('button');
+          btn.textContent = i;
+          btn.disabled = (i === currentPage);
+          btn.onclick = () => { currentPage = i; renderTables(); };
+          pagination.appendChild(btn);
+        }
+      }
+    }
+
+    function showFilters() {
+      document.getElementById('filters').style.display = '';
+      document.getElementById('classificationSwitch').style.display = '';
+    }
+
+    function setupFilterEvents() {
+      document.getElementById('tableFilter').onchange =
+      document.getElementById('typeFilter').onchange =
+      document.getElementById('columnFilter').oninput =
+      document.getElementById('classificationSwitch').onchange = function() {
+        currentPage = 1;
+        renderTables();
+      };
+    }
+
+    document.getElementById('jsonFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          data = JSON.parse(evt.target.result);
+          tables = data.tables || [];
+          extractFilters();
+          populateFilters();
+          showFilters();
+          setupFilterEvents();
+          currentPage = 1;
+          renderTables();
+          // Save to sessionStorage
+          sessionStorage.setItem('classificationJson', evt.target.result);
+        } catch (err) {
+          alert('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('maskingFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          maskingData = JSON.parse(evt.target.result);
+          maskingTables = maskingData.tables || [];
+          renderMaskingMap();
+          // Save to sessionStorage
+          sessionStorage.setItem('maskingJson', evt.target.result);
+        } catch (err) {
+          alert('Invalid masking.json file.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function populateMaskingFilters() {
+      // Use table names from masking.json
+      const tableNames = maskingTables.map(t => t.name);
+      const datasetSet = new Set();
+      maskingTables.forEach(t => t.columns.forEach(c => { if (c.dataset) datasetSet.add(c.dataset); }));
+      const datasetList = Array.from(datasetSet).sort();
+      const tableFilter = document.getElementById('maskingTableFilter');
+      tableFilter.innerHTML = '<option value="">All Tables</option>';
+      tableNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        tableFilter.appendChild(opt);
+      });
+      const datasetFilter = document.getElementById('maskingDatasetFilter');
+      datasetFilter.innerHTML = '<option value="">All Masking Datasets</option>';
+      datasetList.forEach(ds => {
+        const opt = document.createElement('option');
+        opt.value = ds;
+        opt.textContent = ds;
+        datasetFilter.appendChild(opt);
+      });
+      document.getElementById('maskingFilters').style.display = '';
+    }
+
+    function getFilteredMaskingTables() {
+      const tableVal = document.getElementById('maskingTableFilter').value.trim();
+      const datasetVal = document.getElementById('maskingDatasetFilter').value.trim();
+      const deterministicVal = document.getElementById('maskingDeterministicFilter').value;
+      const switchVal = document.getElementById('maskingSwitch')?.value || 'all';
+      // Filter tables by table name
+      let filteredTables = maskingTables;
+      if (tableVal) {
+        filteredTables = maskingTables.filter(table => table.name === tableVal);
+      }
+      // For each table, filter columns by masking dataset and deterministic
+      filteredTables = filteredTables.map(table => {
+        let filteredColumns = table.columns;
+        if (datasetVal) {
+          filteredColumns = filteredColumns.filter(col => col.dataset === datasetVal);
+        }
+        if (deterministicVal === 'true') {
+          filteredColumns = filteredColumns.filter(col => col.deterministic === true);
+        } else if (deterministicVal === 'false') {
+          filteredColumns = filteredColumns.filter(col => col.deterministic === false);
+        }
+        return { ...table, columns: filteredColumns };
+      });
+      // Only return tables that have columns after filtering
+      filteredTables = filteredTables.filter(table => table.columns.length > 0);
+      // Switch logic
+      return filteredTables.filter(table => {
+        const hasMaskingDataset = table.columns.some(col => col.dataset && col.dataset.trim() !== '');
+        if (switchVal === 'with' && !hasMaskingDataset) return false;
+        if (switchVal === 'without' && hasMaskingDataset) return false;
+        return true;
+      });
+    }
+
+    function renderMaskingMap() {
+      const container = document.getElementById('maskingMapContent');
+      if (!maskingTables || maskingTables.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#c00; font-size:1.2em; margin-top:40px;">No masking map loaded.</div>';
+        document.getElementById('maskingFilters').style.display = 'none';
+        return;
+      }
+      // Save current filter values before repopulating filters
+      const prevTableVal = document.getElementById('maskingTableFilter')?.value || '';
+      const prevDatasetVal = document.getElementById('maskingDatasetFilter')?.value || '';
+      const prevDeterministicVal = document.getElementById('maskingDeterministicFilter')?.value || '';
+      const prevSwitchVal = document.getElementById('maskingSwitch')?.value || 'all';
+      populateMaskingFilters();
+      // Restore previous filter values
+      document.getElementById('maskingTableFilter').value = prevTableVal;
+      document.getElementById('maskingDatasetFilter').value = prevDatasetVal;
+      document.getElementById('maskingDeterministicFilter').value = prevDeterministicVal;
+      document.getElementById('maskingSwitch').value = prevSwitchVal;
+      // Ensure event listeners are set after filters are populated
+      ['maskingTableFilter','maskingDatasetFilter','maskingDeterministicFilter','maskingSwitch'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.onchange = function() {
+            renderMaskingMap();
+          };
+        }
+      });
+      const filteredTables = getFilteredMaskingTables();
+      let html = '';
+      filteredTables.forEach(table => {
+        html += `<div class=\"table-card\">`
+          + `<div class=\"table-title\">${table.name} <span style=\"color:#888;font-size:0.9em;\">(${table.schema})</span></div>`
+          + `<table><tr><th>Column</th><th>Masking Dataset</th><th>Deterministic</th><th>Max Length</th></tr>`;
+        table.columns.forEach(col => {
+          html += `<tr>`
+            + `<td>${col.name}</td>`
+            + `<td>${col.dataset ? `<span style='color:#c00;font-weight:600;'>${col.dataset}</span>` : '<span style=\"color:#bbb;\">-</span>'}</td>`
+            + `<td>${typeof col.deterministic === 'boolean' ? (col.deterministic ? 'Yes' : 'No') : ''}</td>`
+            + `<td>${col.maxLength !== undefined ? col.maxLength : ''}</td>`
+            + `</tr>`;
+        });
+        html += '</table></div>';
+      });
+      container.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
