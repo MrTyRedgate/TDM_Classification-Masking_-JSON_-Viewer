@@ -145,15 +145,21 @@
           <option value="with">Tables With Classification</option>
           <option value="without">Tables Without Classification</option>
         </select>
+        <input type="text" id="classificationTableSearch" placeholder="Search Table Name..." style="padding:8px;border-radius:4px;border:1px solid #c00;min-width:180px;">
       </div>
       <div class="filters" style="display:none;" id="filters">
-        <select id="tableFilter">
-          <option value="">All Tables</option>
-        </select>
-        <input type="text" id="columnFilter" placeholder="Filter by Column Name">
-        <select id="typeFilter">
-          <option value="">All Classification Types</option>
-        </select>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="tableFilter" style="font-weight:500;color:#c00;">Table Filter:</label>
+          <select id="tableFilter">
+            <option value="">All Tables</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="typeFilter" style="font-weight:500;color:#c00;">Classification Type Filter:</label>
+          <select id="typeFilter">
+            <option value="">All Classification Types</option>
+          </select>
+        </div>
       </div>
       <div id="classificationNote" style="text-align:center; color:#c00; font-size:0.95em; margin-bottom:12px; margin-top:2px;">Filters from the Table Perspective</div>
       <div id="tableList" class="table-list"></div>
@@ -167,19 +173,29 @@
           <option value="with">Tables With Masking Dataset</option>
           <option value="without">Tables Without Masking Dataset</option>
         </select>
+        <input type="text" id="maskingTableSearch" placeholder="Search Table Name..." style="padding:8px;border-radius:4px;border:1px solid #c00;min-width:180px;">
       </div>
       <div class="filters" id="maskingFilters" style="display:none; margin-bottom:24px;">
-        <select id="maskingTableFilter">
-          <option value="">All Tables</option>
-        </select>
-        <select id="maskingDatasetFilter">
-          <option value="">All Masking Datasets</option>
-        </select>
-        <select id="maskingDeterministicFilter">
-          <option value="">Deterministic?</option>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
-        </select>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="maskingTableFilter" style="font-weight:500;color:#c00;">Table Filter:</label>
+          <select id="maskingTableFilter">
+            <option value="">All Tables</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="maskingDatasetFilter" style="font-weight:500;color:#c00;">Masking Dataset Filter:</label>
+          <select id="maskingDatasetFilter">
+            <option value="">All Masking Datasets</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="maskingDeterministicFilter" style="font-weight:500;color:#c00;">Deterministic Filter:</label>
+          <select id="maskingDeterministicFilter">
+            <option value="">All</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
       </div>
       <div id="maskingNote" style="text-align:center; color:#c00; font-size:0.95em; margin-bottom:12px; margin-top:2px;">Filters from the Table Perspective</div>
       <div id="maskingMapContent"></div>
@@ -198,6 +214,7 @@
     </div>
   </div>
   <div id="version-watermark" style="position:fixed;right:16px;bottom:8px;font-size:1.25em;color:#c00;opacity:0.5;font-weight:600;pointer-events:none;z-index:999;">version 1.1</div>
+    <div style="position:fixed;right:16px;bottom:0px;font-size:0.95em;color:#c00;opacity:0.6;font-weight:500;pointer-events:none;z-index:999;">V1.0</div>
   <script>
     let data = null;
     let tables = [];
@@ -311,26 +328,27 @@
 
     function getFilteredTables() {
       const tableVal = document.getElementById('tableFilter').value.trim();
-      const columnVal = document.getElementById('columnFilter').value.trim().toLowerCase();
+      const tableSearchVal = document.getElementById('classificationTableSearch')?.value.trim().toLowerCase() || '';
       const typeVal = document.getElementById('typeFilter').value.trim();
       const switchVal = document.getElementById('classificationSwitch')?.value || 'all';
-      return tables.filter(table => {
-        // Switch logic
-        const hasClassification = table.columns.some(col => col.type && col.type.trim() !== '');
-        if (switchVal === 'with' && !hasClassification) return false;
-        if (switchVal === 'without' && hasClassification) return false;
-        if (tableVal && table.name !== tableVal) return false;
-        // If column or type filter, check if any column matches
-        if (columnVal || typeVal) {
-          return table.columns.some(col => {
-            const colNameMatch = !columnVal || col.name.toLowerCase().includes(columnVal);
-            // Fix: type filter should match only if col.type exists
-            const typeMatch = !typeVal || (col.type && col.type === typeVal);
-            return colNameMatch && typeMatch;
-          });
-        }
-        return true;
-      });
+      return tables
+        .map(table => {
+          // Table name search
+          if (tableSearchVal && !table.name.toLowerCase().includes(tableSearchVal)) return null;
+          // Switch logic
+          const hasClassification = table.columns.some(col => col.type && col.type.trim() !== '');
+          if (switchVal === 'with' && !hasClassification) return null;
+          if (switchVal === 'without' && hasClassification) return null;
+          if (tableVal && table.name !== tableVal) return null;
+          // If type filter, filter columns
+          let filteredColumns = table.columns;
+          if (typeVal) {
+            filteredColumns = filteredColumns.filter(col => col.type && col.type === typeVal);
+          }
+          if (filteredColumns.length === 0) return null;
+          return { ...table, columns: filteredColumns };
+        })
+        .filter(Boolean);
     }
 
     function renderTables() {
@@ -347,16 +365,21 @@
         document.getElementById('pagination').innerHTML = '';
         return;
       }
+      const typeVal = document.getElementById('typeFilter').value.trim();
       tablesToShow.forEach(table => {
         const card = document.createElement('div');
         card.className = 'table-card';
         card.innerHTML = `<div class="table-title">${table.name} <span style="color:#888;font-size:0.9em;">(${table.schema})</span></div>`;
         const tbl = document.createElement('table');
         tbl.innerHTML = `<tr><th>Column</th><th>Classification Type</th><th>Max Length</th></tr>`;
-        table.columns.forEach(col => {
+        let columnsToShow = table.columns;
+        if (typeVal) {
+          columnsToShow = columnsToShow.filter(col => col.type && col.type === typeVal);
+        }
+        columnsToShow.forEach(col => {
           tbl.innerHTML += `<tr>
             <td>${col.name}</td>
-            <td class="classification">${col.type ? col.type : '<span style="color:#bbb;">-</span>'}</td>
+            <td class="classification">${col.type ? col.type : '<span style=\"color:#bbb;\">-</span>'}</td>
             <td>${col.maxLength !== undefined ? col.maxLength : ''}</td>
           </tr>`;
         });
@@ -385,8 +408,16 @@
     function setupFilterEvents() {
       document.getElementById('tableFilter').onchange =
       document.getElementById('typeFilter').onchange =
-      document.getElementById('columnFilter').oninput =
       document.getElementById('classificationSwitch').onchange = function() {
+        const switchVal = document.getElementById('classificationSwitch').value;
+        if (switchVal === 'with' || switchVal === 'without') {
+          document.getElementById('tableFilter').value = '';
+          document.getElementById('typeFilter').value = '';
+        }
+        currentPage = 1;
+        renderTables();
+      };
+      document.getElementById('classificationTableSearch').oninput = function() {
         currentPage = 1;
         renderTables();
       };
@@ -460,6 +491,7 @@
 
     function getFilteredMaskingTables() {
       const tableVal = document.getElementById('maskingTableFilter').value.trim();
+      const tableSearchVal = document.getElementById('maskingTableSearch')?.value.trim().toLowerCase() || '';
       const datasetVal = document.getElementById('maskingDatasetFilter').value.trim();
       const deterministicVal = document.getElementById('maskingDeterministicFilter').value;
       const switchVal = document.getElementById('maskingSwitch')?.value || 'all';
@@ -477,12 +509,17 @@
         if (deterministicVal === 'true') {
           filteredColumns = filteredColumns.filter(col => col.deterministic === true);
         } else if (deterministicVal === 'false') {
-          filteredColumns = filteredColumns.filter(col => col.deterministic === false);
+          filteredColumns = filteredColumns.filter(col => col.deterministic === false || col.deterministic === undefined);
         }
         return { ...table, columns: filteredColumns };
       });
       // Only return tables that have columns after filtering
       filteredTables = filteredTables.filter(table => table.columns.length > 0);
+      // Table name search
+      filteredTables = filteredTables.filter(table => {
+        if (tableSearchVal && !table.name.toLowerCase().includes(tableSearchVal)) return false;
+        return true;
+      });
       // Switch logic
       return filteredTables.filter(table => {
         const hasMaskingDataset = table.columns.some(col => col.dataset && col.dataset.trim() !== '');
@@ -504,21 +541,36 @@
       const prevDatasetVal = document.getElementById('maskingDatasetFilter')?.value || '';
       const prevDeterministicVal = document.getElementById('maskingDeterministicFilter')?.value || '';
       const prevSwitchVal = document.getElementById('maskingSwitch')?.value || 'all';
+      const prevTableSearchVal = document.getElementById('maskingTableSearch')?.value || '';
       populateMaskingFilters();
       // Restore previous filter values
       document.getElementById('maskingTableFilter').value = prevTableVal;
       document.getElementById('maskingDatasetFilter').value = prevDatasetVal;
       document.getElementById('maskingDeterministicFilter').value = prevDeterministicVal;
       document.getElementById('maskingSwitch').value = prevSwitchVal;
+      document.getElementById('maskingTableSearch').value = prevTableSearchVal;
       // Ensure event listeners are set after filters are populated
-      ['maskingTableFilter','maskingDatasetFilter','maskingDeterministicFilter','maskingSwitch'].forEach(id => {
+      ['maskingTableFilter','maskingDatasetFilter','maskingDeterministicFilter','maskingTableSearch'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-          el.onchange = function() {
+          el.onchange = el.oninput = function() {
             renderMaskingMap();
           };
         }
       });
+      // Special handling for maskingSwitch
+      const maskingSwitchEl = document.getElementById('maskingSwitch');
+      if (maskingSwitchEl) {
+        maskingSwitchEl.onchange = function() {
+          const switchVal = maskingSwitchEl.value;
+          if (switchVal === 'with' || switchVal === 'without') {
+            document.getElementById('maskingTableFilter').value = '';
+            document.getElementById('maskingDatasetFilter').value = '';
+            document.getElementById('maskingDeterministicFilter').value = '';
+          }
+          renderMaskingMap();
+        };
+      }
       const filteredTables = getFilteredMaskingTables();
       let html = '';
       filteredTables.forEach(table => {
