@@ -474,19 +474,24 @@
       reader.onload = function(evt) {
         try {
           data = JSON.parse(evt.target.result);
-          tables = data.tables || [];
-          extractFilters();
-          populateFilters();
-          showFilters();
-          setupFilterEvents();
-          currentPage = 1;
-          renderTables();
-          // Save to sessionStorage
-          sessionStorage.setItem('classificationJson', evt.target.result);
-          showUploadSuccess('classification');
         } catch (err) {
-          alert('Invalid JSON file.');
+          alert('The file is not valid JSON. Please upload a valid classification.json file.');
+          return;
         }
+        if (!data || !Array.isArray(data.tables)) {
+          alert('The file is missing required structure. Expected a "tables" array in the root object.');
+          return;
+        }
+        tables = data.tables;
+        extractFilters();
+        populateFilters();
+        showFilters();
+        setupFilterEvents();
+        currentPage = 1;
+        renderTables();
+        // Save to sessionStorage
+        sessionStorage.setItem('classificationJson', evt.target.result);
+        showUploadSuccess('classification');
       };
       reader.readAsText(file);
     });
