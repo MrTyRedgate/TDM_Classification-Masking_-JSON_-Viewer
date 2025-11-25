@@ -160,6 +160,12 @@
       </div>
       <div class="filters" style="display:none;" id="filters">
         <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="schemaFilter" style="font-weight:500;color:#c00;">Schema Filter:</label>
+          <select id="schemaFilter">
+            <option value="">All Schemas</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
           <label for="tableFilter" style="font-weight:500;color:#c00;">Table Filter:</label>
           <select id="tableFilter">
             <option value="">All Tables</option>
@@ -187,6 +193,12 @@
         <input type="text" id="maskingTableSearch" placeholder="Search Table Name..." style="padding:8px;border-radius:4px;border:1px solid #c00;min-width:180px;">
       </div>
       <div class="filters" id="maskingFilters" style="display:none; margin-bottom:24px;">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+          <label for="maskingSchemaFilter" style="font-weight:500;color:#c00;">Schema Filter:</label>
+          <select id="maskingSchemaFilter">
+            <option value="">All Schemas</option>
+          </select>
+        </div>
         <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
           <label for="maskingTableFilter" style="font-weight:500;color:#c00;">Table Filter:</label>
           <select id="maskingTableFilter">
@@ -263,6 +275,7 @@
     let data = null;
     let tables = [];
     let tableNames = [];
+    let schemaList = [];
     let typeList = [];
     const tablesPerPage = 5;
     let currentPage = 1;
@@ -378,12 +391,23 @@
 
     function extractFilters() {
       tableNames = tables.map(t => t.name);
+      const schemaSet = new Set();
+      tables.forEach(t => { if (t.schema) schemaSet.add(t.schema); });
+      schemaList = Array.from(schemaSet).sort();
       const typeSet = new Set();
       tables.forEach(t => t.columns.forEach(c => { if (c.type) typeSet.add(c.type); }));
       typeList = Array.from(typeSet).sort();
     }
 
     function populateFilters() {
+      const schemaFilter = document.getElementById('schemaFilter');
+      schemaFilter.innerHTML = '<option value="">All Schemas</option>';
+      schemaList.forEach(schema => {
+        const opt = document.createElement('option');
+        opt.value = schema;
+        opt.textContent = schema;
+        schemaFilter.appendChild(opt);
+      });
       const tableFilter = document.getElementById('tableFilter');
       tableFilter.innerHTML = '<option value="">All Tables</option>';
       tableNames.forEach(name => {
@@ -403,12 +427,15 @@
     }
 
     function getFilteredTables() {
+      const schemaVal = document.getElementById('schemaFilter').value.trim();
       const tableVal = document.getElementById('tableFilter').value.trim();
       const tableSearchVal = document.getElementById('classificationTableSearch')?.value.trim().toLowerCase() || '';
       const typeVal = document.getElementById('typeFilter').value.trim();
       const switchVal = document.getElementById('classificationSwitch')?.value || 'all';
       return tables
         .map(table => {
+          // Schema filter
+          if (schemaVal && table.schema !== schemaVal) return null;
           // Table name search
           if (tableSearchVal && !table.name.toLowerCase().includes(tableSearchVal)) return null;
           // Switch logic
@@ -487,11 +514,13 @@
     }
 
     function setupFilterEvents() {
+      document.getElementById('schemaFilter').onchange =
       document.getElementById('tableFilter').onchange =
       document.getElementById('typeFilter').onchange =
       document.getElementById('classificationSwitch').onchange = function() {
         const switchVal = document.getElementById('classificationSwitch').value;
         if (switchVal === 'with' || switchVal === 'without') {
+          document.getElementById('schemaFilter').value = '';
           document.getElementById('tableFilter').value = '';
           document.getElementById('typeFilter').value = '';
         }
@@ -564,9 +593,20 @@
     function populateMaskingFilters() {
       // Use table names from masking.json
       const tableNames = maskingTables.map(t => t.name);
+      const schemaSet = new Set();
+      maskingTables.forEach(t => { if (t.schema) schemaSet.add(t.schema); });
+      const schemaList = Array.from(schemaSet).sort();
       const datasetSet = new Set();
       maskingTables.forEach(t => t.columns.forEach(c => { if (c.dataset) datasetSet.add(c.dataset); }));
       const datasetList = Array.from(datasetSet).sort();
+      const schemaFilter = document.getElementById('maskingSchemaFilter');
+      schemaFilter.innerHTML = '<option value="">All Schemas</option>';
+      schemaList.forEach(schema => {
+        const opt = document.createElement('option');
+        opt.value = schema;
+        opt.textContent = schema;
+        schemaFilter.appendChild(opt);
+      });
       const tableFilter = document.getElementById('maskingTableFilter');
       tableFilter.innerHTML = '<option value="">All Tables</option>';
       tableNames.forEach(name => {
@@ -587,15 +627,20 @@
     }
 
     function getFilteredMaskingTables() {
+      const schemaVal = document.getElementById('maskingSchemaFilter').value.trim();
       const tableVal = document.getElementById('maskingTableFilter').value.trim();
       const tableSearchVal = document.getElementById('maskingTableSearch')?.value.trim().toLowerCase() || '';
       const datasetVal = document.getElementById('maskingDatasetFilter').value.trim();
       const deterministicVal = document.getElementById('maskingDeterministicFilter').value;
       const switchVal = document.getElementById('maskingSwitch')?.value || 'all';
-      // Filter tables by table name
+      // Filter tables by schema
       let filteredTables = maskingTables;
+      if (schemaVal) {
+        filteredTables = filteredTables.filter(table => table.schema === schemaVal);
+      }
+      // Filter tables by table name
       if (tableVal) {
-        filteredTables = maskingTables.filter(table => table.name === tableVal);
+        filteredTables = filteredTables.filter(table => table.name === tableVal);
       }
       // For each table, filter columns by masking dataset and deterministic
       filteredTables = filteredTables.map(table => {
@@ -634,6 +679,7 @@
         return;
       }
       // Save current filter values before repopulating filters
+      const prevSchemaVal = document.getElementById('maskingSchemaFilter')?.value || '';
       const prevTableVal = document.getElementById('maskingTableFilter')?.value || '';
       const prevDatasetVal = document.getElementById('maskingDatasetFilter')?.value || '';
       const prevDeterministicVal = document.getElementById('maskingDeterministicFilter')?.value || '';
@@ -641,13 +687,14 @@
       const prevTableSearchVal = document.getElementById('maskingTableSearch')?.value || '';
       populateMaskingFilters();
       // Restore previous filter values
+      document.getElementById('maskingSchemaFilter').value = prevSchemaVal;
       document.getElementById('maskingTableFilter').value = prevTableVal;
       document.getElementById('maskingDatasetFilter').value = prevDatasetVal;
       document.getElementById('maskingDeterministicFilter').value = prevDeterministicVal;
       document.getElementById('maskingSwitch').value = prevSwitchVal;
       document.getElementById('maskingTableSearch').value = prevTableSearchVal;
       // Ensure event listeners are set after filters are populated
-      ['maskingTableFilter','maskingDatasetFilter','maskingDeterministicFilter','maskingTableSearch'].forEach(id => {
+      ['maskingSchemaFilter','maskingTableFilter','maskingDatasetFilter','maskingDeterministicFilter','maskingTableSearch'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.onchange = el.oninput = function() {
@@ -661,6 +708,7 @@
         maskingSwitchEl.onchange = function() {
           const switchVal = maskingSwitchEl.value;
           if (switchVal === 'with' || switchVal === 'without') {
+            document.getElementById('maskingSchemaFilter').value = '';
             document.getElementById('maskingTableFilter').value = '';
             document.getElementById('maskingDatasetFilter').value = '';
             document.getElementById('maskingDeterministicFilter').value = '';
