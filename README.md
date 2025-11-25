@@ -9,6 +9,7 @@ This is a free to use tool to assist with understanding the JSON outputs from th
 - View and filter classification and masking JSON files
 - Session persistence for uploaded files
 - Advanced filtering switches for quick table views
+- Schema filter with cascading table filtering
 
 ## Getting Started
 1. Open the `index.html` file in your web browser to start using the viewer.
